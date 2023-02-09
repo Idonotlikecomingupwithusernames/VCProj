@@ -1,0 +1,4 @@
+"helicopter" (https://skfb.ly/6UCxt) by linus1178 is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+
+Modified by Nikolaus Rauch (added lights, modified material, convertion to obj)
+
