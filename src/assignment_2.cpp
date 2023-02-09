@@ -17,7 +17,13 @@ struct
     Model modelGround;
 
     ShaderProgram shaderColor;
+    ShaderProgram shaderGBuffer;
+
+    int width = 1280;
+    int height = 720;
 } sScene;
+
+GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth;
 
 struct
 {
@@ -25,7 +31,6 @@ struct
     Vector2D mousePressStart;
     bool keyPressed[Helicopter::eControl::CONTROL_COUNT] = {false, false, false, false, false, false, false, false};
 } sInput;
-
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -139,6 +144,47 @@ void sceneInit(float width, float height)
     sScene.modelGround = modelLoad("assets/ground/ground.obj").front();
 
     sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
+    sScene.shaderGBuffer = shaderLoad("shader/default.vert", "shader/gShader.frag");
+
+    glGenFramebuffers(1, &gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+    
+    glGenTextures(1, &gPosition);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, gPosition, 0);
+
+    glGenTextures(1, &gNormal);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, gNormal, 0);
+    
+    glGenTextures(1, &gColorSpec);
+    glBindTexture(GL_TEXTURE_2D, gColorSpec);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, gColorSpec, 0);
+
+    glGenTextures(1, &gDepth);
+    glBindTexture(GL_TEXTURE_2D, gDepth);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gDepth, 0);
+
+    GLuint buffers[3] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
+    glDrawBuffers(3, buffers);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        printf("Framebuffer incomplete \n");
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void sceneUpdate(float dt)
@@ -160,39 +206,81 @@ void sceneDraw()
         Matrix4D proj = cameraProjection(sScene.camera);
         Matrix4D view = cameraView(sScene.camera);
 
-        glUseProgram(sScene.shaderColor.id);
-        shaderUniform(sScene.shaderColor, "uProj",  proj);
-        shaderUniform(sScene.shaderColor, "uView",  view);
-        shaderUniform(sScene.shaderColor, "uModel",  sScene.heli.transformation);
-
-        /* render heli */
-        for(unsigned int i = 0; i < sScene.heli.partModel.size(); i++)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer);
         {
-            auto& model = sScene.heli.partModel[i];
-            auto& transform = sScene.heli.partTransformations[i];
-            glBindVertexArray(model.mesh.vao);
+            glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            shaderUniform(sScene.shaderColor, "uModel", sScene.heli.transformation * transform);
+            glUseProgram(sScene.shaderGBuffer.id);
+            shaderUniform(sScene.shaderGBuffer, "uProj",  proj);
+            shaderUniform(sScene.shaderGBuffer, "uView",  view);
+            shaderUniform(sScene.shaderGBuffer, "uModel",  sScene.heli.transformation);
 
-            for(auto& material : model.material)
+            /* render heli */
+            for(unsigned int i = 0; i < sScene.heli.partModel.size(); i++)
+            {
+                auto& model = sScene.heli.partModel[i];
+                auto& transform = sScene.heli.partTransformations[i];
+                glBindVertexArray(model.mesh.vao);
+
+                shaderUniform(sScene.shaderGBuffer, "uModel", sScene.heli.transformation * transform);
+
+                for(auto& material : model.material)
+                {
+                    /* set material properties */
+                    shaderUniform(sScene.shaderGBuffer, "uMaterial.diffuse", material.diffuse);
+                    shaderUniform(sScene.shaderGBuffer, "uSpec", 0.0f);
+
+                    glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
+                }
+            }
+
+            /* render ground */
+            shaderUniform(sScene.shaderGBuffer, "uModel", Matrix4D::scale(4.0, 4.0, 4.0));
+            glBindVertexArray(sScene.modelGround.mesh.vao);
+
+            for(auto& material : sScene.modelGround.material)
             {
                 /* set material properties */
-                shaderUniform(sScene.shaderColor, "uMaterial.diffuse", material.diffuse);
+                shaderUniform(sScene.shaderGBuffer, "uMaterial.diffuse", material.diffuse);
+                shaderUniform(sScene.shaderGBuffer, "uSpec", 0.7f);
 
                 glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
             }
         }
 
-        /* render ground */
-        shaderUniform(sScene.shaderColor, "uModel", Matrix4D::scale(4.0, 4.0, 4.0));
-        glBindVertexArray(sScene.modelGround.mesh.vao);
-
-        for(auto& material : sScene.modelGround.material)
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         {
-            /* set material properties */
-            shaderUniform(sScene.shaderColor, "uMaterial.diffuse", material.diffuse);
+            glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
+            //glUseProgram(sScene.shaderColor.id);
+            /*
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gColorSpec);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, gDepth); */
+
+            glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
+
+            GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);
+            GLsizei HalfHeight = (GLsizei)(sScene.height / 2.0f);
+
+            glReadBuffer(gPosition);
+            glBlitFramebuffer(0, 0, sScene.width, sScene.height, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+            glReadBuffer(gNormal);
+            glBlitFramebuffer(0, 0, sScene.width, sScene.height, 0, HalfHeight, HalfWidth, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+            glReadBuffer(gColorSpec);
+            glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, HalfHeight, sScene.width, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+            glReadBuffer(gDepth);
+            glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
         }
 
     }
