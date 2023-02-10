@@ -172,7 +172,7 @@ void sceneInit(float width, float height)
 
     glGenTextures(1, &gDepth);
     glBindTexture(GL_TEXTURE_2D, gDepth);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32F, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, gDepth, 0);
@@ -270,17 +270,17 @@ void sceneDraw()
             GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);
             GLsizei HalfHeight = (GLsizei)(sScene.height / 2.0f);
 
-            glReadBuffer(gPosition);
-            glBlitFramebuffer(0, 0, sScene.width, sScene.height, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glReadBuffer(GL_COLOR_ATTACHMENT0);
+            glBlitNamedFramebuffer(gBuffer, 0, 0, 0, sScene.width, sScene.height, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-            glReadBuffer(gNormal);
-            glBlitFramebuffer(0, 0, sScene.width, sScene.height, 0, HalfHeight, HalfWidth, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glReadBuffer(GL_COLOR_ATTACHMENT0 + 1);
+            glBlitNamedFramebuffer(gBuffer, 0, 0, 0, sScene.width, sScene.height, 0, HalfHeight, HalfWidth, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-            glReadBuffer(gColorSpec);
+            glReadBuffer(GL_COLOR_ATTACHMENT0 + 2);
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, HalfHeight, sScene.width, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-            glReadBuffer(gDepth);
-            glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            glReadBuffer(GL_DEPTH_COMPONENT);
+            glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         }
 
     }
