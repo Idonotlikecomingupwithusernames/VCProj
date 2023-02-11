@@ -211,6 +211,9 @@ void sceneDraw()
             glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+            glEnable(GL_DEPTH_TEST);
+            glDepthFunc(GL_LESS); 
+
             glUseProgram(sScene.shaderGBuffer.id);
             shaderUniform(sScene.shaderGBuffer, "uProj",  proj);
             shaderUniform(sScene.shaderGBuffer, "uView",  view);
@@ -247,12 +250,16 @@ void sceneDraw()
 
                 glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
             }
+
+            
         }
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         {
             glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glDisable(GL_DEPTH_TEST);
 
             //glUseProgram(sScene.shaderColor.id);
             /*
@@ -267,6 +274,8 @@ void sceneDraw()
 
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
 
+            
+
             GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);
             GLsizei HalfHeight = (GLsizei)(sScene.height / 2.0f);
 
@@ -280,7 +289,9 @@ void sceneDraw()
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, HalfHeight, sScene.width, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
             glReadBuffer(GL_DEPTH_COMPONENT);
-            glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+            
         }
 
     }
