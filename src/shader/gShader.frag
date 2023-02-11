@@ -30,7 +30,7 @@ void main()
     gNormal = vec4(normalize(tNormal), 1.0f);
     gPosition = vec4(tFragPos, 1.0f);
     
-    vec4 gColorSpec = vec4(uMaterial.diffuse.rgb, uSpec);
+    gColorSpec = vec4(uMaterial.diffuse.rgb, uSpec);
 
     //gColorSpec = vec4(vec3(float(linearize(gl_FragCoord.z)) / 100.0), 1.0f);
 }  

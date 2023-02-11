@@ -1,15 +1,12 @@
 #version 330 core
 
-struct Material
-{
-    vec3 diffuse;
-};
+in vec2 tUV;
 
 out vec4 FragColor;
 
-uniform Material uMaterial;
+uniform sampler2D texDepth;
 
 void main(void)
 {
-    FragColor = vec4(uMaterial.diffuse, 1.0);
+    FragColor = vec4(texture(texDepth, tUV).rgb, 1.0);
 }

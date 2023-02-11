@@ -256,8 +256,8 @@ void sceneDraw()
 
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         {
-            glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            //glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
+            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glDisable(GL_DEPTH_TEST);
 
@@ -272,9 +272,8 @@ void sceneDraw()
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, gDepth); */
 
+            /*
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
-
-            
 
             GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);
             GLsizei HalfHeight = (GLsizei)(sScene.height / 2.0f);
@@ -290,8 +289,15 @@ void sceneDraw()
 
             glReadBuffer(GL_DEPTH_COMPONENT);
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+            */
 
-            
+
+            glUseProgram(sScene.shaderColor.id);
+
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gColorSpec);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), 0);
+
         }
 
     }
