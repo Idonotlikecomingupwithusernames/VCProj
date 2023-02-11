@@ -295,7 +295,7 @@ void sceneDraw()
             glUseProgram(sScene.shaderColor.id);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gColorSpec);
+            glBindTexture(GL_TEXTURE_2D, gDepth);
             glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), 0);
 
         }
