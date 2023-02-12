@@ -7,6 +7,13 @@
 
 #include "helicopter.h"
 
+#include <vector>
+
+#include <math.h>
+
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+
 struct
 {
     Camera camera;
@@ -24,6 +31,31 @@ struct
 } sScene;
 
 GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth;
+GLuint vao_quad = 0, vbo_quad = 0, ebo_quad = 0;
+
+enum eIndex {position = 0, color = 1, uV = 2};
+
+struct Vex
+{
+    GLfloat position[3];
+    GLfloat color[3];
+    GLfloat uv[2];
+};
+
+const std::vector<Vertex> vertices_quad =
+{
+    /* position */          /* color */         /* uv */
+    {{-1.0, -1.0, 0.0},     {1.0, 1.0, 1.0},    {0.0, 0.0}},
+    {{-1.0,  1.0, 0.0},     {0.0, 1.0, 1.0},    {0.0, 1.0}},
+    {{ 1.0,  1.0, 0.0},     {1.0, 1.0, 1.0},    {1.0, 1.0}},
+    {{ 1.0, -1.0, 0.0},     {0.0, 0.0, 1.0},    {1.0, 0.0}}
+};
+
+const std::vector<unsigned int> indices_quad =
+{
+    0, 1, 2,
+    2, 3, 0
+};
 
 struct
 {
@@ -185,6 +217,35 @@ void sceneInit(float width, float height)
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    
+
+    /* generate vertex array object, and buffer */
+    glGenVertexArrays(1, &vao_quad);
+    glGenBuffers(1, &vbo_quad);
+    glGenBuffers(1, &ebo_quad);
+
+    /* bind buffer to vertex array object (remembers location of attribute data) */
+    glBindVertexArray(vao_quad);
+    {
+        /* upload data to buffer */
+        glBindBuffer(GL_ARRAY_BUFFER, vbo_quad);
+        glBufferData(GL_ARRAY_BUFFER, vertices_quad.size() * sizeof(Vex), vertices_quad.data(), GL_STATIC_DRAW);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_quad);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices_quad.size() * sizeof(unsigned int), indices_quad.data(), GL_STATIC_DRAW);
+
+        /* enable attribute locations (see vertex shader) */
+        glEnableVertexAttribArray(eIndex::position);
+        glEnableVertexAttribArray(eIndex::color);
+        glEnableVertexAttribArray(eIndex::uV);
+        /* specify location of vertex attributes (see vertex shader) */
+        glVertexAttribPointer(eIndex::position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vex, position));
+        glVertexAttribPointer(eIndex::color,    3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vex, color));
+        glVertexAttribPointer(eIndex::uV,       2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vex, uv));
+    }
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 void sceneUpdate(float dt)
@@ -257,7 +318,7 @@ void sceneDraw()
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         {
             //glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
-            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glDisable(GL_DEPTH_TEST);
 
@@ -295,8 +356,15 @@ void sceneDraw()
             glUseProgram(sScene.shaderColor.id);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gDepth);
+            glBindTexture(GL_TEXTURE_2D, gColorSpec);
             glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), 0);
+
+            /* draw content in vertex array */
+            glBindVertexArray(vao_quad);
+            {
+                glDrawElements(GL_TRIANGLES, indices_quad.size(), GL_UNSIGNED_INT, (void*) 0);
+            }
+            glBindVertexArray(0);
 
         }
 
