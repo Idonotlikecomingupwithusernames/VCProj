@@ -428,6 +428,7 @@ int main(int argc, char** argv)
     /*-------- cleanup --------*/
     helicopterDelete(sScene.heli);
     shaderDelete(sScene.shaderColor);
+    shaderDelete(sScene.shaderGBuffer);
     windowDelete(window);
 
     return EXIT_SUCCESS;
