@@ -39,7 +39,7 @@ struct Vex
 };
 
 // Color values should not be needed, as quad should be filled using texture (will change this when we get the rest working)
-const std::vector<Vertex> vertices_quad =
+const std::vector<Vex> vertices_quad =
 {
     /* position */          /* color */         /* uv */
     {{-1.0, -1.0, 0.0},     {1.0, 1.0, 1.0},    {0.0, 0.0}},
@@ -239,9 +239,9 @@ void sceneInit(float width, float height)
         glEnableVertexAttribArray(eIndex::color);
         glEnableVertexAttribArray(eIndex::uV);
         /* specify location of vertex attributes (see vertex shader) */
-        glVertexAttribPointer(eIndex::position, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vex, position));
-        glVertexAttribPointer(eIndex::color,    3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vex, color));
-        glVertexAttribPointer(eIndex::uV,       2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vex, uv));
+        glVertexAttribPointer(eIndex::position, 3, GL_FLOAT, GL_FALSE, sizeof(Vex), (void*) offsetof(Vex, position));
+        glVertexAttribPointer(eIndex::color,    3, GL_FLOAT, GL_FALSE, sizeof(Vex), (void*) offsetof(Vex, color));
+        glVertexAttribPointer(eIndex::uV,       2, GL_FLOAT, GL_FALSE, sizeof(Vex), (void*) offsetof(Vex, uv));
     }
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -257,8 +257,9 @@ void sceneUpdate(float dt)
 
 void sceneDraw()
 {
-    glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Don't overdo it
+    //glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     /*------------ render scene -------------*/
     {
@@ -327,22 +328,12 @@ void sceneDraw()
             glDisable(GL_DEPTH_TEST);
 
             /*
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gPosition);
-            glActiveTexture(GL_TEXTURE1);
-            glBindTexture(GL_TEXTURE_2D, gNormal);
-            glActiveTexture(GL_TEXTURE2);
-            glBindTexture(GL_TEXTURE_2D, gColorSpec);
-            glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, gDepth); */
-
-            /*
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
 
             GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);
             GLsizei HalfHeight = (GLsizei)(sScene.height / 2.0f);
 
-            // Blit position, normals and color information to screen
+            // Blit position, normals and color information to screen (this works and displays the correct images)
 
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             glBlitNamedFramebuffer(gBuffer, 0, 0, 0, sScene.width, sScene.height, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -359,11 +350,19 @@ void sceneDraw()
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             */
 
-
             glUseProgram(sScene.shaderColor.id);
 
+            // Just get one texture through the fragment shader for now
             glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
+            /*
+            glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, gNormal);
+            glActiveTexture(GL_TEXTURE2);
+            glBindTexture(GL_TEXTURE_2D, gColorSpec);
+            glActiveTexture(GL_TEXTURE3);
+            glBindTexture(GL_TEXTURE_2D, gDepth); */
+
             // This may not be necessary but it doesn't work either way
             glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE0);
 
