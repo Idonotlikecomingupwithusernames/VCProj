@@ -172,7 +172,7 @@ void sceneInit(float width, float height)
     sScene.heli = helicopterLoad("assets/heli_low_poly/helicopter.obj");
     sScene.modelGround = modelLoad("assets/ground/ground.obj").front();
 
-    // GBuffer and (future) SSR fragment shaders should be able to share the same vertex shader
+    // GBuffer and (future) SSR fragment shaders should be able to share the same vertex shader (for now)
     sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
     sScene.shaderGBuffer = shaderLoad("shader/default.vert", "shader/gShader.frag");
 
@@ -355,16 +355,17 @@ void sceneDraw()
             // Just get one texture through the fragment shader for now
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, gPosition);
-            /*
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, gNormal);
             glActiveTexture(GL_TEXTURE2);
             glBindTexture(GL_TEXTURE_2D, gColorSpec);
             glActiveTexture(GL_TEXTURE3);
-            glBindTexture(GL_TEXTURE_2D, gDepth); */
+            glBindTexture(GL_TEXTURE_2D, gDepth);
+
+            shaderUniform(sScene.shaderColor, "uProj",  proj);
 
             // This may not be necessary but it doesn't work either way
-            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE0);
+            //glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE0);
 
             /* draw content in vertex array */
             glBindVertexArray(vao_quad);
@@ -387,7 +388,7 @@ int main(int argc, char** argv)
     /*---------- init window ------------*/
     int width = 1280;
     int height = 720;
-    GLFWwindow* window = windowCreate("Assignment 2 - Shading", width, height);
+    GLFWwindow* window = windowCreate("Why it no work", width, height);
     if(!window) { return EXIT_FAILURE; }
 
     /* set window callbacks */

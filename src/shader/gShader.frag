@@ -32,6 +32,7 @@ void main()
     
     gColorSpec = vec4(uMaterial.diffuse.rgb, uSpec);
 
+    // We'll make our own depth buffer with blackjack and z coordinates
     //gColorSpec = vec4(vec3(float(linearize(gl_FragCoord.z)) / 100.0), 1.0f);
 }  
 
