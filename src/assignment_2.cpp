@@ -7,13 +7,6 @@
 
 #include "helicopter.h"
 
-#include <vector>
-
-#include <math.h>
-
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-
 struct
 {
     Camera camera;
@@ -30,11 +23,14 @@ struct
     int height = 720;
 } sScene;
 
+// Global variables rule
 GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth;
 GLuint vao_quad = 0, vbo_quad = 0, ebo_quad = 0;
 
+/* Define information for quad, sourced from example 09_framebuffer */
 enum eIndex {position = 0, color = 1, uV = 2};
 
+// Names changed to avoid conflict with definitions in mesh.h
 struct Vex
 {
     GLfloat position[3];
@@ -42,6 +38,7 @@ struct Vex
     GLfloat uv[2];
 };
 
+// Color values should not be needed, as quad should be filled using texture (will change this when we get the rest working)
 const std::vector<Vertex> vertices_quad =
 {
     /* position */          /* color */         /* uv */
@@ -175,9 +172,11 @@ void sceneInit(float width, float height)
     sScene.heli = helicopterLoad("assets/heli_low_poly/helicopter.obj");
     sScene.modelGround = modelLoad("assets/ground/ground.obj").front();
 
+    // GBuffer and (future) SSR fragment shaders should be able to share the same vertex shader
     sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
     sScene.shaderGBuffer = shaderLoad("shader/default.vert", "shader/gShader.frag");
 
+    /* Create gBuffer, attach textures for position, normals, color + spec and depth */
     glGenFramebuffers(1, &gBuffer);
     glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
     
@@ -218,7 +217,7 @@ void sceneInit(float width, float height)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    
+    /* Code for binding vertex buffer objects, sourced from example 09_framebuffer */
 
     /* generate vertex array object, and buffer */
     glGenVertexArrays(1, &vao_quad);
@@ -267,6 +266,7 @@ void sceneDraw()
         Matrix4D proj = cameraProjection(sScene.camera);
         Matrix4D view = cameraView(sScene.camera);
 
+        /* Draw scene to gBuffer */
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer);
         {
             glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
@@ -276,6 +276,7 @@ void sceneDraw()
             glDepthFunc(GL_LESS); 
 
             glUseProgram(sScene.shaderGBuffer.id);
+
             shaderUniform(sScene.shaderGBuffer, "uProj",  proj);
             shaderUniform(sScene.shaderGBuffer, "uView",  view);
             shaderUniform(sScene.shaderGBuffer, "uModel",  sScene.heli.transformation);
@@ -293,6 +294,7 @@ void sceneDraw()
                 {
                     /* set material properties */
                     shaderUniform(sScene.shaderGBuffer, "uMaterial.diffuse", material.diffuse);
+                    // Specular component hardcoded until we get it working
                     shaderUniform(sScene.shaderGBuffer, "uSpec", 0.0f);
 
                     glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
@@ -307,6 +309,7 @@ void sceneDraw()
             {
                 /* set material properties */
                 shaderUniform(sScene.shaderGBuffer, "uMaterial.diffuse", material.diffuse);
+                // Specular component hardcoded until we get it working
                 shaderUniform(sScene.shaderGBuffer, "uSpec", 0.7f);
 
                 glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
@@ -315,6 +318,7 @@ void sceneDraw()
             
         }
 
+        /* Switch draw buffer back to screen */
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         {
             //glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
@@ -322,10 +326,9 @@ void sceneDraw()
 
             glDisable(GL_DEPTH_TEST);
 
-            //glUseProgram(sScene.shaderColor.id);
             /*
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gNormal);
+            glBindTexture(GL_TEXTURE_2D, gPosition);
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, gNormal);
             glActiveTexture(GL_TEXTURE2);
@@ -339,6 +342,8 @@ void sceneDraw()
             GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);
             GLsizei HalfHeight = (GLsizei)(sScene.height / 2.0f);
 
+            // Blit position, normals and color information to screen
+
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             glBlitNamedFramebuffer(gBuffer, 0, 0, 0, sScene.width, sScene.height, 0, 0, HalfWidth, HalfHeight, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -348,6 +353,8 @@ void sceneDraw()
             glReadBuffer(GL_COLOR_ATTACHMENT0 + 2);
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, HalfHeight, sScene.width, sScene.height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
+            // This does not work and is likely incorrect, as glDrawBuffer only works with COLOR_ATTACHMENTs and glReadBuffer likely does too
+
             glReadBuffer(GL_DEPTH_COMPONENT);
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             */
@@ -356,8 +363,9 @@ void sceneDraw()
             glUseProgram(sScene.shaderColor.id);
 
             glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_2D, gColorSpec);
-            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), 0);
+            glBindTexture(GL_TEXTURE_2D, gNormal);
+            // This may not be necessary but it doesn't work either way
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE0);
 
             /* draw content in vertex array */
             glBindVertexArray(vao_quad);
