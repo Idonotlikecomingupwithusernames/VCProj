@@ -69,5 +69,6 @@ void main(void)
     endFrag.xy   = endFrag.xy * 0.5 + 0.5;
     endFrag.xy  *= texSize;
 
-    FragColor = vec4(Color, 1.0);
+    //FragColor = vec4(Depth, 1.0);
+    FragColor = ColorSpec;
 }

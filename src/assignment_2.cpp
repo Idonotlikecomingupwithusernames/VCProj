@@ -173,7 +173,7 @@ void sceneInit(float width, float height)
     sScene.modelGround = modelLoad("assets/ground/ground.obj").front();
 
     // GBuffer and (future) SSR fragment shaders should be able to share the same vertex shader (for now)
-    sScene.shaderColor = shaderLoad("shader/default.vert", "shader/color.frag");
+    sScene.shaderColor = shaderLoad("shader/quad.vert", "shader/color.frag");
     sScene.shaderGBuffer = shaderLoad("shader/default.vert", "shader/gShader.frag");
 
     /* Create gBuffer, attach textures for position, normals, color + spec and depth */
@@ -365,7 +365,10 @@ void sceneDraw()
             shaderUniform(sScene.shaderColor, "uProj",  proj);
 
             // This may not be necessary but it doesn't work either way
-            //glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE0);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texPos"), GL_TEXTURE0);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texNormal"), GL_TEXTURE1);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texColSpec"), GL_TEXTURE2);
+            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE3);
 
             /* draw content in vertex array */
             glBindVertexArray(vao_quad);
