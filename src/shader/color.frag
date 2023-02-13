@@ -1,32 +1,23 @@
-#version 330 core
+#version 420 core
 
-in vec3 tColor;
+//in vec3 tColor;
 in vec2 tUV;
 
 out vec4 FragColor;
 
+/*
 uniform sampler2D texPos;
 uniform sampler2D texNorm;
 uniform sampler2D texColSpec;
 uniform sampler2D texDepth;
+*/
+
+layout(binding = 0) uniform sampler2D texPos;
+layout(binding = 1) uniform sampler2D texNorm;
+layout(binding = 2) uniform sampler2D texColSpec;
+layout(binding = 3) uniform sampler2D texDepth;
 
 uniform mat4 uProj;
-
-/* Bresenham's line algorithm, sourced from rosettacode.org */
-void line(int x0, int y0, int x1, int y1) {
-
-  int dx = abs(x1-x0), sx = x0<x1 ? 1 : -1;
-  int dy = abs(y1-y0), sy = y0<y1 ? 1 : -1; 
-  int err = (dx>dy ? dx : -dy)/2, e2;
-
-  for(;;){
-    //setPixel(x0,y0);
-    if (x0==x1 && y0==y1) break;
-    e2 = err;
-    if (e2 >-dx) { err -= dy; x0 += sx; }
-    if (e2 < dy) { err += dx; y0 += sy; }
-  }
-}
 
 /* Neat linearization that may or may not work, sourced from github.com/pissang */
 float linearDepth(float depth)
@@ -46,29 +37,95 @@ void main(void)
 
     vec4 uv = vec4(0.0);        
 
-    vec3 Position = texture(texPos, tUV).rgb;
-    vec3 Normal = normalize(texture(texNorm, tUV).rgb);
+    vec3 Position = texture(texPos, tUV).xyz;
+    vec3 Normal = normalize(texture(texNorm, tUV).xyz);
     vec4 ColorSpec = texture(texColSpec, tUV);
-    vec3 Depth = texture(texDepth, tUV).rgb;
+    float Depth = texture(texDepth, tUV).x;
 
     vec3 Color = ColorSpec.rgb;
     float Spec = ColorSpec.w;
 
-    vec3 Reflected = normalize(reflect(normalize(Position), Normal));
+    if(Spec > 0.2f){
+      vec3 Reflected = normalize(reflect(normalize(Position), Normal));
 
-    vec4 startView = vec4(Position, 1);
-    vec4 endView = vec4(Position + (Reflected * maxDistance), 1);
+      vec4 startView = vec4(Position, 1);
+      vec4 endView = vec4(Position + (Reflected * maxDistance), 1);
 
-    vec4 startFrag = uProj * startView;
-    startFrag.xyz /= startFrag.w;
-    startFrag.xy = startFrag.xy * 0.5 + 0.5;
-    startFrag.xy *= texSize;
+      vec4 startFrag = uProj * startView;
+      startFrag.xyz /= startFrag.w;
+      startFrag.xy = startFrag.xy * 0.5 + 0.5;
+      startFrag.xy *= texSize;
 
-    vec4 endFrag = uProj * endView;
-    endFrag.xyz /= endFrag.w;
-    endFrag.xy   = endFrag.xy * 0.5 + 0.5;
-    endFrag.xy  *= texSize;
+      vec4 endFrag = uProj * endView;
+      endFrag.xyz /= endFrag.w;
+      endFrag.xy   = endFrag.xy * 0.5 + 0.5;
+      endFrag.xy  *= texSize;
 
-    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    //FragColor = ColorSpec;
+      vec3 currentFragment  = startFrag.xy;
+      uv.xy = currentFragment / texSize;
+
+      bool Pass1Hit = false;
+      bool Pass2Hit = false;
+
+      float rayDepth;
+      float depth;
+
+      int Progress;
+      
+      /* First pass */
+      /* Bresenham's line algorithm, sourced from rosettacode.org */
+
+      int dx = abs(endFrag.x-startFrag.x), sx = startFrag.x<endFrag.x ? 1 : -1;
+      int dy = abs(endFrag.y-startFrag.y), sy = startFrag.y<endFrag.y ? 1 : -1; 
+      int err = (dx>dy ? dx : -dy)/2, e2;
+
+      for(Progress = 0; Progress < maxSteps; Progress++){
+        
+        uv.xy = currentFragment.xy / texSize;
+        depth = texture(texPos, uv.xy).z;
+        rayDepth = (uProj * (startView + Progress * Reflected)).z;
+
+        dDepth = rayDepth - depth;
+
+        if(dDepth > 0 && dDepth < thickness){
+          Pass1Hit = true;
+          break;
+        }
+
+        if (currentFragment.x==endFrag.x && currentFragment.y==endFrag.y) break;
+
+        e2 = err;
+        if (e2 >-dx) { err -= dy; currentFragment.x += sx; }
+        if (e2 < dy) { err += dx; currentFragment.y += sy; }
+      }
+
+      /* Second pass */
+      if(Pass1Hit){
+        vec3 startPos = startView + (Progress - 1) * Reflected;
+        vec3 endPos = startView + Progress * Reflected;
+
+        vec3 currentPos = startPos;
+
+        for(int i = 0; i < steps; i++){
+          uv.xy = currentPos.xy / texSize;
+          depth = texture(texPos, uv.xy).z;
+          rayDepth = CurrentPos.z;
+
+          dDepth = rayDepth - depth;
+
+          /* The worst binary search you've ever seen */
+          if(dDepth > 0 && dDepth < thickness){
+            Pass2Hit = true;
+            CurrentPos -= Reflected * 1/pow(2, i+1);
+          } else{
+            CurrentPos += Reflected * 1/pow(2, i+1);
+          }
+          
+        }
+      }
+
+
+    }
+
+    FragColor = ColorSpec;
 }

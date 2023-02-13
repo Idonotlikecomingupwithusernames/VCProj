@@ -165,7 +165,7 @@ void windowResizeCallback(GLFWwindow* window, int width, int height)
 
 void sceneInit(float width, float height)
 {
-    sScene.camera = cameraCreate(width, height, to_radians(45.0), 0.01, 500.0, {10.0, 10.0, 10.0}, {0.0, 0.0, 0.0});
+    sScene.camera = cameraCreate(width, height, to_radians(45.0), 0.01, 200.0, {10.0, 10.0, 10.0}, {0.0, 0.0, 0.0});
     sScene.cameraFollowHeli = true;
     sScene.zoomSpeedMultiplier = 0.05f;
 
