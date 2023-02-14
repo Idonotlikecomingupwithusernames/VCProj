@@ -20,7 +20,7 @@ Our project is currently capable of displaying wildly incorrect, but still disce
 
 Reflections that do work are the following:
 * Reflections of the sky (background color) in the strange shapes on the ground, if the camera is far away from the center of the ground plane.
-* Reflections of the Helicopter's blue and red colors, if the helictoper is close to the ground and the camera (helicopter at the bottom of the screen) (camera mode 1).
+* Reflections of the Helicopter's blue and red colors, if the helicopter is close to the ground and the camera (helicopter at the bottom of the screen) (camera mode 1).
 * Reflections of the Helicopter's moving rotors, spinning the wrong way.
 
 ## Build Instructions
