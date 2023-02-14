@@ -69,7 +69,7 @@ void helicopterMove(Helicopter& heli, bool control[], float dt)
 
     /* animation of rotors */
     /* animation of rotors */
-    heli.rotorRotation += dt*8*M_PI;
+    heli.rotorRotation += dt*0.5*M_PI;
     #define TRANS_INV(vec, matrix) Matrix4D::translation(vec) * (matrix) * Matrix4D::translation(-vec);
     heli.partTransformations[Helicopter::ROTOR] = TRANS_INV(Vector4D(0, 0, -0.69129), Matrix4D::rotationY(heli.rotorRotation));
     heli.partTransformations[Helicopter::TAIL_ROTOR] = TRANS_INV(Vector4D(-0.28062, 1.813, -8.009), Matrix4D::rotationX(heli.rotorRotation));
