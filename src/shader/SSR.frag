@@ -148,7 +148,7 @@ void main(void)
         /* If a more fine-grained hit was found in the second pass, pass texture at those coordinates 
          * Currently, this produces funny shapes and white pixels, centered around the origin, but it does capture:
          * The rotation of the helicopter's rotor,
-         * The helicopter's coloration, if the helicopter is close to the camera
+         * The helicopter's coloration, if the helicopter is close to the camera and the ground
          * The background color, if the helicopter (and thus the camera) is far from the origin
          */
         if(Pass2Hit){
