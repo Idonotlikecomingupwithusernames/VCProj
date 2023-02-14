@@ -24,7 +24,7 @@ struct
 } sScene;
 
 // Global variables rule
-GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth, rBuffer, rReflection;
+GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth;
 GLuint vao_quad = 0, vbo_quad = 0, ebo_quad = 0;
 
 /* Define information for quad, sourced from example 09_framebuffer */
@@ -217,29 +217,6 @@ void sceneInit(float width, float height)
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    /* Should we combine our colors in the SSR shader?
-    
-    glGenFramebuffers(1, &rBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, rBuffer);
-    
-    glGenTextures(1, &rReflection);
-    glBindTexture(GL_TEXTURE_2D, rReflection);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rReflection, 0);
-
-    GLuint buffer[1] = {GL_COLOR_ATTACHMENT0};
-    glDrawBuffers(1, buffer);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
-        printf("Framebuffer incomplete \n");
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-    */
-
     /* Code for binding vertex buffer objects, sourced from example 09_framebuffer */
 
     /* generate vertex array object, and buffer */
@@ -372,7 +349,6 @@ void sceneDraw()
 
             glUseProgram(sScene.shaderSSR.id);
 
-            // Just get one texture through the fragment shader for now
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, gPosition);
             glActiveTexture(GL_TEXTURE1);
@@ -383,6 +359,7 @@ void sceneDraw()
             glBindTexture(GL_TEXTURE_2D, gDepth);
 
             shaderUniform(sScene.shaderSSR, "uProj",  proj);
+            //shaderUniform(sScene.shaderSSR, "uInvProj",  inverse(proj));
 
             /* draw content in vertex array */
             glBindVertexArray(vao_quad);

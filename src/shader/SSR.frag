@@ -10,6 +10,7 @@ layout(binding = 2) uniform sampler2D texColSpec;
 layout(binding = 3) uniform sampler2D texDepth;
 
 uniform mat4 uProj;
+//uniform mat4 uInvProj;
 
 /* Neat linearization that may or may not work, sourced from github.com/pissang */
 float linearDepth(float depth)
@@ -29,15 +30,14 @@ void main(void)
     float thickness   = 0.5;
 
     vec2 texSize  = textureSize(texPos, 0).xy;
-    vec2 texCoord = gl_FragCoord.xy / texSize;
 
+    // Storage for our reflected uv coordinates (why is it a vec4? god is weeping)
     vec4 uv = vec4(0.0);        
 
     vec3 Position = texture(texPos, tUV).xyz;
     vec3 Normal = normalize(texture(texNorm, tUV).xyz);
     vec4 ColorSpec = texture(texColSpec, tUV);
-    //Do we even need this?
-    float Depth = texture(texDepth, tUV).x;
+    // Using the depth buffer results in no reflections for some reason (probably reading it wrong)
 
     vec3 Color = ColorSpec.rgb;
     // Wouldn't want the sky to be reflective (because w=1) (just don't set the specularity of objects to 1.0)
@@ -47,6 +47,10 @@ void main(void)
     FragColor = vec4(Color, 1.0f);
 
     if(Spec > 0.2f){
+      bool Pass1Hit = false;
+      bool Pass2Hit = false;
+
+      // Negating the normal does not solve the problem of inverted reflections
       vec3 Reflected = normalize(reflect(normalize(Position), Normal));
 
       // Ray endpoints in viewspace
@@ -59,6 +63,7 @@ void main(void)
       startFrag.xy = startFrag.xy * 0.5 + 0.5;
       startFrag.xy *= texSize;
 
+      // For some reason, everything is centered around the origin and it's probably somewhere around here
       vec4 endFrag = uProj * endView;
       endFrag.xyz /= endFrag.w;
       endFrag.xy   = endFrag.xy * 0.5 + 0.5;
@@ -67,9 +72,6 @@ void main(void)
       // There's a lot of noobish back-and forth between vec types, which we can tidy up once it works
       vec3 currentFragment  = startFrag.xyz;
       uv.xy = currentFragment.xy / texSize;
-
-      bool Pass1Hit = false;
-      bool Pass2Hit = false;
 
       /* 
        * rayDepth : the z coordinate of our ray's current position
@@ -85,10 +87,13 @@ void main(void)
       /* First pass */
       /* Bresenham's line algorithm, sourced from rosettacode.org */
 
-      float dx = abs(endFrag.x-startFrag.x), sx = startFrag.x<endFrag.x ? 1 : -1;
-      float dy = abs(endFrag.y-startFrag.y), sy = startFrag.y<endFrag.y ? 1 : -1; 
+      float dx = abs(endFrag.x-startFrag.x);
+      float dy = abs(endFrag.y-startFrag.y); 
       float err = (dx>dy ? dx : -dy)/2, e2;
 
+      int sx = startFrag.x<endFrag.x ? 1 : -1, sy = startFrag.y<endFrag.y ? 1 : -1;
+
+      /* The problem isn't in the 2/3 Bresenham (I've checked) */
       for(Progress = 0; Progress < maxDistance; Progress++){
         
         uv.xy = currentFragment.xy / texSize;
@@ -103,7 +108,7 @@ void main(void)
           Pass1Hit = true;
           break;
         }
-
+        
         // We've arrived at the end of the ray
         if (currentFragment.x==endFrag.x && currentFragment.y==endFrag.y) break;
 
@@ -130,6 +135,7 @@ void main(void)
           /* The worst binary search you've ever seen */
           if(dDepth > 0 && dDepth < thickness){
             Pass2Hit = true;
+            uv.xy = currentPos.xy;
             currentPos -= Reflected * 1/pow(2, i+1);
           } else{
             currentPos += Reflected * 1/pow(2, i+1);
@@ -139,11 +145,15 @@ void main(void)
         /* This is where we'd put a visibility check, if the reflections did what they were supposed to */
 
         /* If a more fine-grained hit was found in the second pass, pass texture at those coordinates 
-          Currently, this produces funny shapes and white pixels, but it does capture the rotation of the helicopter's rotor
-        */
+         * Currently, this produces funny shapes and white pixels, but it does capture:
+         * The rotation of the helicopter's rotor,
+         * The helicopter's red coloration, if the helicopter is close to the camera
+         * The background color, if the helicopter (and thus the camera) is far from the origin
+         */
         if(Pass2Hit){
-          FragColor += clamp(texture(texColSpec, currentPos.xy), 0, 1);
+          FragColor += clamp(texture(texColSpec, uv.xy), 0, 1);
         }
       }
     }
+    /* Reflections currently go the wrong way (?), reflecting toward the screen (???) */
 }
