@@ -16,7 +16,7 @@ struct
     Helicopter heli;
     Model modelGround;
 
-    ShaderProgram shaderColor;
+    ShaderProgram shaderSSR;
     ShaderProgram shaderGBuffer;
 
     int width = 1280;
@@ -24,7 +24,7 @@ struct
 } sScene;
 
 // Global variables rule
-GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth;
+GLuint gBuffer, gPosition, gNormal, gColorSpec, gDepth, rBuffer, rReflection;
 GLuint vao_quad = 0, vbo_quad = 0, ebo_quad = 0;
 
 /* Define information for quad, sourced from example 09_framebuffer */
@@ -173,7 +173,7 @@ void sceneInit(float width, float height)
     sScene.modelGround = modelLoad("assets/ground/ground.obj").front();
 
     // GBuffer and (future) SSR fragment shaders should be able to share the same vertex shader (for now)
-    sScene.shaderColor = shaderLoad("shader/quad.vert", "shader/color.frag");
+    sScene.shaderSSR = shaderLoad("shader/quad.vert", "shader/SSR.frag");
     sScene.shaderGBuffer = shaderLoad("shader/default.vert", "shader/gShader.frag");
 
     /* Create gBuffer, attach textures for position, normals, color + spec and depth */
@@ -216,6 +216,29 @@ void sceneInit(float width, float height)
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    /* Should we combine our colors in the SSR shader?
+    
+    glGenFramebuffers(1, &rBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, rBuffer);
+    
+    glGenTextures(1, &rReflection);
+    glBindTexture(GL_TEXTURE_2D, rReflection);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, rReflection, 0);
+
+    GLuint buffer[1] = {GL_COLOR_ATTACHMENT0};
+    glDrawBuffers(1, buffer);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+        printf("Framebuffer incomplete \n");
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    */
 
     /* Code for binding vertex buffer objects, sourced from example 09_framebuffer */
 
@@ -315,14 +338,11 @@ void sceneDraw()
 
                 glDrawElements(GL_TRIANGLES, material.indexCount, GL_UNSIGNED_INT, (const void*) (material.indexOffset*sizeof(unsigned int)) );
             }
-
-            
         }
 
         /* Switch draw buffer back to screen */
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         {
-            //glClearColor(135.0 / 255, 206.0 / 255, 235.0 / 255, 1.0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             glDisable(GL_DEPTH_TEST);
@@ -350,7 +370,7 @@ void sceneDraw()
             glBlitFramebuffer(0, 0, sScene.width, sScene.height, HalfWidth, 0, sScene.width, HalfHeight, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
             */
 
-            glUseProgram(sScene.shaderColor.id);
+            glUseProgram(sScene.shaderSSR.id);
 
             // Just get one texture through the fragment shader for now
             glActiveTexture(GL_TEXTURE0);
@@ -362,15 +382,7 @@ void sceneDraw()
             glActiveTexture(GL_TEXTURE3);
             glBindTexture(GL_TEXTURE_2D, gDepth);
 
-            shaderUniform(sScene.shaderColor, "uProj",  proj);
-
-            // This may not be necessary but it doesn't work either way
-            /*
-            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texPos"), GL_TEXTURE0);
-            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texNormal"), GL_TEXTURE1);
-            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texColSpec"), GL_TEXTURE2);
-            glUniform1i(glGetUniformLocation(sScene.shaderColor.id, "texDepth"), GL_TEXTURE3);
-            */
+            shaderUniform(sScene.shaderSSR, "uProj",  proj);
 
             /* draw content in vertex array */
             glBindVertexArray(vao_quad);
@@ -432,7 +444,7 @@ int main(int argc, char** argv)
 
     /*-------- cleanup --------*/
     helicopterDelete(sScene.heli);
-    shaderDelete(sScene.shaderColor);
+    shaderDelete(sScene.shaderSSR);
     shaderDelete(sScene.shaderGBuffer);
     windowDelete(window);
 

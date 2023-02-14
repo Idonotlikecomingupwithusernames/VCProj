@@ -25,10 +25,13 @@ float linearDepth(float depth)
     return uProj[3][2] / (depth * uProj[2][3] - uProj[2][2]);
 }
 
+float linearize(float depth){
+    return (2.0*0.1*200.0) / (0.1 + 200.0 - (depth * 2.0 - 1.0) * (200.0 - 0.1));
+}
+
 void main(void)
 {   
     float maxDistance = 15;
-    float resolution  = 0.3;
     int   steps       = 10;
     float thickness   = 0.5;
 
@@ -44,6 +47,9 @@ void main(void)
 
     vec3 Color = ColorSpec.rgb;
     float Spec = ColorSpec.w;
+
+    // If no hit is found, do not add any color
+    FragColor = vec4(Color, 1.0f);
 
     if(Spec > 0.2f){
       vec3 Reflected = normalize(reflect(normalize(Position), Normal));
@@ -61,29 +67,35 @@ void main(void)
       endFrag.xy   = endFrag.xy * 0.5 + 0.5;
       endFrag.xy  *= texSize;
 
-      vec3 currentFragment  = startFrag.xy;
-      uv.xy = currentFragment / texSize;
+      vec3 currentFragment  = startFrag.xyz;
+      uv.xy = currentFragment.xy / texSize;
 
       bool Pass1Hit = false;
       bool Pass2Hit = false;
 
+      /* 
+       * rayDepth : the z coordinate of our ray's current position
+       * depth : the depth value in our depth buffer at the current Pixel's position
+       * dDepth : the difference in depth values between rayDepth and depth, necessary for determining whether a hit has occurred
+       */
       float rayDepth;
       float depth;
+      float dDepth;
 
       int Progress;
       
       /* First pass */
       /* Bresenham's line algorithm, sourced from rosettacode.org */
 
-      int dx = abs(endFrag.x-startFrag.x), sx = startFrag.x<endFrag.x ? 1 : -1;
-      int dy = abs(endFrag.y-startFrag.y), sy = startFrag.y<endFrag.y ? 1 : -1; 
-      int err = (dx>dy ? dx : -dy)/2, e2;
+      float dx = abs(endFrag.x-startFrag.x), sx = startFrag.x<endFrag.x ? 1 : -1;
+      float dy = abs(endFrag.y-startFrag.y), sy = startFrag.y<endFrag.y ? 1 : -1; 
+      float err = (dx>dy ? dx : -dy)/2, e2;
 
-      for(Progress = 0; Progress < maxSteps; Progress++){
+      for(Progress = 0; Progress < maxDistance; Progress++){
         
         uv.xy = currentFragment.xy / texSize;
         depth = texture(texPos, uv.xy).z;
-        rayDepth = (uProj * (startView + Progress * Reflected)).z;
+        rayDepth = (uProj * (startView + Progress * vec4(Reflected, 1.0f))).z;
 
         dDepth = rayDepth - depth;
 
@@ -101,31 +113,32 @@ void main(void)
 
       /* Second pass */
       if(Pass1Hit){
-        vec3 startPos = startView + (Progress - 1) * Reflected;
-        vec3 endPos = startView + Progress * Reflected;
+        vec3 startPos = startView.xyz + (Progress - 1) * Reflected;
+        vec3 endPos = startView.xyz + Progress * Reflected;
 
         vec3 currentPos = startPos;
 
         for(int i = 0; i < steps; i++){
           uv.xy = currentPos.xy / texSize;
           depth = texture(texPos, uv.xy).z;
-          rayDepth = CurrentPos.z;
+          rayDepth = currentPos.z;
 
           dDepth = rayDepth - depth;
 
           /* The worst binary search you've ever seen */
           if(dDepth > 0 && dDepth < thickness){
             Pass2Hit = true;
-            CurrentPos -= Reflected * 1/pow(2, i+1);
+            currentPos -= Reflected * 1/pow(2, i+1);
           } else{
-            CurrentPos += Reflected * 1/pow(2, i+1);
+            currentPos += Reflected * 1/pow(2, i+1);
           }
           
         }
+
+        /* If a more fine-grained hit was found in the second pass, pass texture at those coordinates */
+        if(Pass2Hit){
+          FragColor += texture(texColSpec, currentPos.xy);
+        }
       }
-
-
     }
-
-    FragColor = ColorSpec;
 }
