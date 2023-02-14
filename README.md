@@ -12,15 +12,16 @@ Our team currently consists of the following members:
 
 ## Status
 Our project is currently capable of displaying wildly incorrect, but still discernible reflections.
-* All reflections created in SSR.frag are centered around the origin of the reflective object (the center of our ground plane).
-  We have yet to find a way to fix this.
-* Furthermore, all reflections appear on the wrong side of the screen, as though reflected 180° in the wrong direction.
-  This seems easier to fix, however, with everything being circular, it's hard to tell what the problem is.
-* There are also plenty of blind spots in our reflections, the source of which may also become more apparent once the circularity issue is resolved.
+* ~~All reflections created in SSR.frag are centered around the origin of the reflective object (the center of our ground plane).
+  We have yet to find a way to fix this.~~
+* ~~Furthermore, all reflections appear on the wrong side of the screen, as though reflected 180° in the wrong direction.
+  This seems easier to fix, however, with everything being circular, it's hard to tell what the problem is.~~
+* There is also plenty of ~~blind spots~~ volatility in our reflections, ~~the source of which may also become more apparent once the circularity issue is resolved.~~
+* Reflections are currently stretched into small, conical sections, expanding out from the origin along one axis.
 
 Reflections that do work are the following:
-* Reflections of the sky (background color) in the strange shapes on the ground, if the camera is far away from the center of the ground plane.
-* Reflections of the Helicopter's blue and red colors, if the helicopter is close to the ground and the camera (helicopter at the bottom of the screen) (camera mode 1).
+* Reflections of the sky (background color) in the strange shapes on the ground, ~~if the camera is far away from the center of the ground plane.~~
+* Reflections of the Helicopter's blue and red colors, if the helicopter is ~~close to the ground and the camera (helicopter at the bottom of the screen) (camera mode 1).~~ moved forward and downward a little.
 * Reflections of the Helicopter's moving rotors, spinning the wrong way.
 
 ## Build Instructions
