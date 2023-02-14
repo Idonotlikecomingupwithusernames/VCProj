@@ -11,7 +11,7 @@ layout(binding = 2) uniform sampler2D texColSpec;
 layout(binding = 3) uniform sampler2D texDepth;
 
 uniform mat4 uProj;
-//uniform mat4 uInvProj;
+uniform mat4 uInvProj;
 
 /* Neat linearization that may or may not work, sourced from github.com/pissang */
 float linearDepth(float depth)
@@ -35,9 +35,16 @@ void main(void)
     // Storage for our reflected uv coordinates (why is it a vec4? god is weeping)
     vec4 uv = vec4(0.0);        
 
-    vec3 Position = texture(texPos, tUV).xyz;
-    vec3 Normal = normalize(texture(texNorm, tUV).xyz);
+    // De-projecting resolves the volatility issue, but stretches all reflections along one axis (given the lack of z division)
+    //vec3 Position = texture(texPos, tUV).xyz; <- Previously (volatile reflections)
+    vec3 Position = (texture(texPos, tUV) * uInvProj).xyz;
+
+    // De-projecting the normal resolves the circularity issue, but makes the reflections far more volatile and orients them all along the same axis (it's hard to tell whether this is correct or not)
+    //vec3 Normal = normalize(texture(texNorm, tUV).xyz); <- Previously (circular reflections)
+    vec3 Normal = normalize(texture(texNorm, tUV) * uInvProj).xyz;
+
     vec4 ColorSpec = texture(texColSpec, tUV);
+
     // Using the depth buffer results in no reflections for some reason (probably reading it wrong)
 
     vec3 Color = ColorSpec.rgb;
@@ -51,7 +58,6 @@ void main(void)
       bool Pass1Hit = false;
       bool Pass2Hit = false;
 
-      // Negating the normal does not solve the problem of inverted reflections
       vec3 Reflected = normalize(reflect(normalize(Position), Normal));
 
       // Ray endpoints in viewspace
@@ -64,7 +70,6 @@ void main(void)
       startFrag.xy = startFrag.xy * 0.5 + 0.5;
       startFrag.xy *= texSize;
 
-      // For some reason, everything is centered around the origin and it's probably somewhere around here
       vec4 endFrag = uProj * endView;
       endFrag.xyz /= endFrag.w;
       endFrag.xy   = endFrag.xy * 0.5 + 0.5;
@@ -121,6 +126,7 @@ void main(void)
       /* Second pass */
       if(Pass1Hit){
         // Look for a hit between the last position where there was no hit and the position where there was one
+        // Maybe we should center this on the hit point instead?  [1/2] Hitpoint [1/2]
         vec3 startPos = startView.xyz + (Progress - 1) * Reflected;
         vec3 endPos = startView.xyz + Progress * Reflected;
 
@@ -146,15 +152,19 @@ void main(void)
         /* This is where we'd put a visibility check, if the reflections did what they were supposed to */
 
         /* If a more fine-grained hit was found in the second pass, pass texture at those coordinates 
-         * Currently, this produces funny shapes and white pixels, centered around the origin, but it does capture:
+         * X((Currently, this produces funny shapes and white pixels, centered around the origin))
+         * X((Reflections currently go the wrong way (?), reflecting objects toward the screen (???)))
+         * X((De-projecting the normal resolves this issue and shows reflections that repeat periodically))
+         * De-projecting the position resolves this issue, but stretches reflections into infinity along the z axis
+         * These issues are likely caused by some combination of: Incorrect use of projections, Not using the depth buffer
+         * Things that are reflected:
          * The rotation of the helicopter's rotor,
-         * The helicopter's coloration, if the helicopter is close to the camera and the ground
-         * The background color, if the helicopter (and thus the camera) is far from the origin
+         * The helicopter's coloration, if the helicopter is close to the ground and moved forward a little
+         * The background color
          */
         if(Pass2Hit){
           FragColor += clamp(texture(texColSpec, uv.xy), 0, 1);
         }
       }
     }
-    /* Reflections currently go the wrong way (?), reflecting toward the screen (???) */
 }

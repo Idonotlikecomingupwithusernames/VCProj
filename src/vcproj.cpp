@@ -359,7 +359,7 @@ void sceneDraw()
             glBindTexture(GL_TEXTURE_2D, gDepth);
 
             shaderUniform(sScene.shaderSSR, "uProj",  proj);
-            //shaderUniform(sScene.shaderSSR, "uInvProj",  inverse(proj));
+            shaderUniform(sScene.shaderSSR, "uInvProj",  inverse(proj));
 
             /* draw content in vertex array */
             glBindVertexArray(vao_quad);
