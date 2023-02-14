@@ -20,6 +20,7 @@ uniform Material uMaterial;
 uniform float uSpec;
 
 // Where is our Blinn-Phong? yes
+// This comment is just here so i can replace the bad commit message
 
 void main()
 {    
