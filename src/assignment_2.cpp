@@ -282,7 +282,7 @@ void sceneDraw()
             shaderUniform(sScene.shaderGBuffer, "uView",  view);
             shaderUniform(sScene.shaderGBuffer, "uModel",  sScene.heli.transformation);
 
-            /* render heli */
+            /* render heli -> having a moving object actually helps with debugging the SSR shader */
             for(unsigned int i = 0; i < sScene.heli.partModel.size(); i++)
             {
                 auto& model = sScene.heli.partModel[i];
@@ -324,7 +324,7 @@ void sceneDraw()
 
             glDisable(GL_DEPTH_TEST);
 
-            /*
+            /* This is just for displaying our textures, we felt like leaving it in, just in case
             glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
 
             GLsizei HalfWidth = (GLsizei)(sScene.width / 2.0f);

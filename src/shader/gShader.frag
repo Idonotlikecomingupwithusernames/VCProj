@@ -19,11 +19,7 @@ uniform Material uMaterial;
 
 uniform float uSpec;
 
-/*
-float linearize(float depth){
-    return (2.0*0.1*100.0) / (0.1 + 100.0 - (depth * 2.0 - 1.0) * (100.0 - 0.1));
-}
-*/
+// Where is our Blinn-Phong? yes
 
 void main()
 {    
@@ -31,8 +27,5 @@ void main()
     gPosition = vec4(tFragPos, 1.0f);
     
     gColorSpec = vec4(uMaterial.diffuse.rgb, uSpec);
-
-    // We'll make our own depth buffer with blackjack and z coordinates
-    //gColorSpec = vec4(vec3(float(linearize(gl_FragCoord.z)) / 100.0), 1.0f);
 }  
 

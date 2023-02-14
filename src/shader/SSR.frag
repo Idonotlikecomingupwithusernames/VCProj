@@ -4,6 +4,7 @@ in vec2 tUV;
 
 out vec4 FragColor;
 
+// This was the only way we could get the textures to work
 layout(binding = 0) uniform sampler2D texPos;
 layout(binding = 1) uniform sampler2D texNorm;
 layout(binding = 2) uniform sampler2D texColSpec;
@@ -75,7 +76,7 @@ void main(void)
 
       /* 
        * rayDepth : the z coordinate of our ray's current position
-       * depth : the depth value in our depth buffer at the current Pixel's position (except actually using the depth buffer values results in no reflections at all(bug))
+       * depth : the depth value in our "depth buffer" at the current pixel's position (except actually using the depth buffer values results in no reflections at all(bug))
        * dDepth : the difference in depth values between rayDepth and depth, necessary for determining whether a hit has occurred
        */
       float rayDepth;
@@ -98,7 +99,7 @@ void main(void)
         
         uv.xy = currentFragment.xy / texSize;
         depth = linearize(texture(texPos, uv.xy).z);
-        // Discrete calculations make for blocky reflections, but it's not like they work anyway
+        // Discrete calculations make for blocky reflections, but it's not like they work anyway (also: yes this makes the line algorithm less efficient, we know)
         rayDepth = linearize((uProj * (startView + Progress * vec4(Reflected, 1.0f))).z);
 
         dDepth = rayDepth - depth;
@@ -145,9 +146,9 @@ void main(void)
         /* This is where we'd put a visibility check, if the reflections did what they were supposed to */
 
         /* If a more fine-grained hit was found in the second pass, pass texture at those coordinates 
-         * Currently, this produces funny shapes and white pixels, but it does capture:
+         * Currently, this produces funny shapes and white pixels, centered around the origin, but it does capture:
          * The rotation of the helicopter's rotor,
-         * The helicopter's red coloration, if the helicopter is close to the camera
+         * The helicopter's coloration, if the helicopter is close to the camera
          * The background color, if the helicopter (and thus the camera) is far from the origin
          */
         if(Pass2Hit){
