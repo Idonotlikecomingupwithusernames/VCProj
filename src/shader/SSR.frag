@@ -35,9 +35,10 @@ void main(void)
     // Storage for our reflected uv coordinates (why is it a vec4? god is weeping)
     vec4 uv = vec4(0.0);        
 
-    // De-projecting resolves the volatility issue, but stretches all reflections along one axis (given the lack of z division)
-    //vec3 Position = texture(texPos, tUV).xyz; <- Previously (volatile reflections)
-    vec3 Position = (texture(texPos, tUV) * uInvProj).xyz;
+    // De-projecting would resolve the volatility issue, but stretches all reflections along one axis (given the lack of z division)
+    //vec3 Position = (texture(texPos, tUV) * uInvProj).xyz; <- Probably wrong
+    
+    vec3 Position = texture(texPos, tUV).xyz;
 
     // De-projecting the normal resolves the circularity issue, but makes the reflections far more volatile and orients them all along the same axis (it's hard to tell whether this is correct or not)
     //vec3 Normal = normalize(texture(texNorm, tUV).xyz); <- Previously (circular reflections)
@@ -154,8 +155,8 @@ void main(void)
         /* If a more fine-grained hit was found in the second pass, pass texture at those coordinates 
          * X((Currently, this produces funny shapes and white pixels, centered around the origin))
          * X((Reflections currently go the wrong way (?), reflecting objects toward the screen (???)))
-         * X((De-projecting the normal resolves this issue and shows reflections that repeat periodically))
-         * De-projecting the position resolves this issue, but stretches reflections into infinity along the z axis
+         * De-projecting the normal resolves this issue and shows reflections that repeat periodically
+         * X((De-projecting the position resolves this issue, but stretches reflections into infinity along the z axis))
          * These issues are likely caused by some combination of: Incorrect use of projections, Not using the depth buffer
          * Things that are reflected:
          * The rotation of the helicopter's rotor,
